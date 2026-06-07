@@ -306,7 +306,7 @@ a {
 .spotlight-card h3,
 .day-card h3,
 .stay-card h3,
-.todo-card h3,
+.todo-card h4,
 .panel h3 {
   margin: 0;
   font-size: 19px;
@@ -418,6 +418,21 @@ a {
   grid-template-columns: auto minmax(0, 1fr);
   gap: 12px;
   padding: 16px;
+}
+
+.todo-section {
+  display: grid;
+  gap: 10px;
+}
+
+.todo-section h3 {
+  margin: 8px 0 0;
+  font-size: 18px;
+}
+
+.todo-section-list {
+  display: grid;
+  gap: 10px;
 }
 
 .todo-dot {

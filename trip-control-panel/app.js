@@ -56,7 +56,7 @@ const stays = [
     range: "2026-07-09 - 07-13",
     days: ["D18", "D19", "D20", "D21"],
     hotel: "Sheraton Grand Salzburg",
-    status: "需修正兒童年齡備註",
+    status: "已確認，兒童年齡已修正",
     query: "Sheraton Grand Salzburg"
   }
 ];
@@ -108,7 +108,7 @@ const dayOps = {
   },
   D10: {
     primary: ["Interlaken Ost to Montreux GoldenPass Express", "Grand Hotel Suisse Majestic Montreux"],
-    transit: ["GoldenPass Express Interlaken Ost Montreux Train 4065 09:07"],
+    transit: ["Grindelwald to Interlaken Ost 07:48", "GoldenPass Express Train 4065 Interlaken Ost 09:07 Montreux 12:25"],
     notes: ["GoldenPass 是座位預約，仍需有效 Swiss Travel Pass", "Wagon 10 Seats 16 / 22 / 23 / 28"]
   },
   D11: {
@@ -139,7 +139,7 @@ const dayOps = {
   D16: {
     primary: ["Vienna House Schaffhausen to LEGOLAND Feriendorf", "Munot Schaffhausen"],
     transit: ["Vienna House zur Bleiche Schaffhausen to LEGOLAND Feriendorf 10:30"],
-    notes: ["D16 包車已完成，出發前確認司機、兒童座椅、pickup 位置", "早上只做老城與 Munot 短散步"]
+    notes: ["D16 包車已付款：Booking №993666576，CHF 460，4 人、4 行李、2 booster", "早上只做老城與 Munot 短散步，17:30 Dschungel Buffet"]
   },
   D17: {
     primary: ["LEGOLAND Deutschland Resort", "LEGOLAND Feriendorf"],
@@ -148,8 +148,8 @@ const dayOps = {
   },
   D18: {
     primary: ["LEGOLAND Feriendorf to Sheraton Grand Salzburg", "Mirabell Palace Salzburg"],
-    transit: ["LEGOLAND Feriendorf to Sheraton Grand Salzburg private transfer"],
-    notes: ["D18 包車仍是重點待辦", "抵達 Salzburg 後用 Mirabell / 河邊 / 老城暖身"]
+    transit: ["LEGOLAND Feriendorf to Sheraton Grand Salzburg 10:30 private transfer"],
+    notes: ["D18 包車已付款：Booking №761878030，CHF 580，4 人、4 行李、2 booster", "抵達 Salzburg 後只排 Mirabell Garden / Salzach 河邊散步"]
   },
   D19: {
     primary: ["Sheraton Grand Salzburg to Koenigssee", "St Bartholomae Koenigssee"],
@@ -168,8 +168,8 @@ const dayOps = {
   },
   D22: {
     primary: ["Sheraton Grand Salzburg to Munich Airport", "Munich Airport Terminal 1"],
-    transit: ["Sheraton Grand Salzburg to Munich Airport private transfer"],
-    notes: ["D22 包車是回程航班安全關鍵", "13:55 起飛，抵達機場時間要保守"]
+    transit: ["Sheraton Grand Salzburg to Munich Airport Terminal 1 07:15 private transfer"],
+    notes: ["D22 包車已付款：Booking №414195211，CHF 390，4 人、4 行李、2 booster", "07:05-07:10 Sheraton lobby；CX300 13:50 起飛"]
   },
   D23: {
     primary: ["Kaohsiung International Airport"],
@@ -177,19 +177,10 @@ const dayOps = {
   }
 };
 
-const actionItems = [
-  { done: false, title: "預訂 D22 Salzburg → Munich Airport 包車", body: "直接影響回程航班安全，優先度最高。" },
-  { done: false, title: "預訂 D18 LEGOLAND → Salzburg 包車", body: "跨國移動日，建議保守安排 pickup 與兒童座椅。" },
-  { done: true, title: "D16 Schaffhausen → LEGOLAND 包車", body: "10:30 Vienna House 上車，直達 LEGOLAND Feriendorf reception。" },
-  { done: false, title: "修正 Booking.com 兒童年齡", body: "Sheraton Salzburg 備註需修正為實際生日。" },
-  { done: false, title: "預訂 Zermatt 與重點城市餐廳", body: "Restaurant Schaeferstube、Chez Vrony、Galliker、Gueterhof、Salzburg 晚餐。" },
-  { done: false, title: "D7 少女峰票券與座位", body: "天氣型票券，出發前 1-2 天再決定。" },
-  { done: false, title: "eSIM / 旅平險 / 離線票券", body: "出發前把票券、保單、護照備份放進離線可取用位置。" }
-];
-
 const state = {
   days: [],
-  selectedDay: null
+  selectedDay: null,
+  checklistSections: []
 };
 
 const $ = (selector) => document.querySelector(selector);
@@ -200,6 +191,7 @@ async function init() {
   const data = await response.json();
   state.days = data.days;
   state.selectedDay = getCurrentTripDay() ?? state.days[0];
+  state.checklistSections = await loadChecklistSections();
 
   bindTabs();
   bindSearch();
@@ -441,19 +433,67 @@ function renderStays() {
 }
 
 function renderActions() {
-  $("#action-board").innerHTML = actionItems
+  if (!state.checklistSections.length) {
+    $("#action-board").innerHTML = `<div class="empty-state">待辦清單載入失敗</div>`;
+    return;
+  }
+
+  $("#action-board").innerHTML = state.checklistSections
     .map(
-      (item) => `
-        <article class="todo-card ${item.done ? "done" : ""}">
-          <span class="todo-dot"></span>
-          <div>
-            <h3>${escapeHtml(item.title)}</h3>
-            <p>${escapeHtml(item.body)}</p>
+      (section) => `
+        <section class="todo-section">
+          <h3>${escapeHtml(section.title)}</h3>
+          <div class="todo-section-list">
+            ${section.items.map(todoCard).join("")}
           </div>
-        </article>
+        </section>
       `
     )
     .join("");
+}
+
+function todoCard(item) {
+  const [title, ...bodyParts] = item.text.split("：");
+  const body = bodyParts.join("：");
+  return `
+    <article class="todo-card ${item.done ? "done" : ""}">
+      <span class="todo-dot"></span>
+      <div>
+        <h4>${escapeHtml(title)}</h4>
+        ${body ? `<p>${escapeHtml(body)}</p>` : ""}
+      </div>
+    </article>
+  `;
+}
+
+async function loadChecklistSections() {
+  const response = await fetch("../docs/prep-checklist.md");
+  if (!response.ok) return [];
+  return parseChecklistMarkdown(await response.text());
+}
+
+function parseChecklistMarkdown(markdown) {
+  const sections = [];
+  let currentSection = null;
+
+  for (const line of markdown.split(/\r?\n/)) {
+    const section = line.match(/^##\s+(.+)$/);
+    if (section) {
+      currentSection = { title: section[1], items: [] };
+      sections.push(currentSection);
+      continue;
+    }
+
+    const task = line.match(/^- \[( |x)\]\s+(.+)$/i);
+    if (task && currentSection) {
+      currentSection.items.push({
+        done: task[1].toLowerCase() === "x",
+        text: task[2]
+      });
+    }
+  }
+
+  return sections.filter((section) => section.items.length);
 }
 
 function openDay(code) {
