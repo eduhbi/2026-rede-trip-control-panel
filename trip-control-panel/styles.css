@@ -348,6 +348,38 @@ a {
   gap: 12px;
 }
 
+.todo-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.todo-summary span,
+.completed-details summary {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  padding: 10px 12px;
+  color: var(--muted);
+  font-weight: 850;
+}
+
+.completed-details {
+  display: grid;
+  gap: 10px;
+}
+
+.completed-details summary {
+  cursor: pointer;
+  list-style-position: inside;
+}
+
+.completed-list {
+  display: grid;
+  gap: 12px;
+  margin-top: 12px;
+}
+
 .day-list {
   grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
 }

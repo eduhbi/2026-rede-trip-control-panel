@@ -438,18 +438,48 @@ function renderActions() {
     return;
   }
 
-  $("#action-board").innerHTML = state.checklistSections
-    .map(
-      (section) => `
+  const pendingSections = filterChecklistSections(false);
+  const completedSections = filterChecklistSections(true);
+  const pendingCount = pendingSections.reduce((sum, section) => sum + section.items.length, 0);
+  const completedCount = completedSections.reduce((sum, section) => sum + section.items.length, 0);
+
+  $("#action-board").innerHTML = `
+    <div class="todo-summary">
+      <span>仍待處理 ${pendingCount} 項</span>
+      <span>已完成 ${completedCount} 項</span>
+    </div>
+    ${
+      pendingSections.length
+        ? pendingSections.map(sectionBlock).join("")
+        : `<div class="empty-state">目前沒有未完成待辦</div>`
+    }
+    <details class="completed-details">
+      <summary>已完成 / 不用再做 (${completedCount})</summary>
+      <div class="completed-list">
+        ${completedSections.map(sectionBlock).join("")}
+      </div>
+    </details>
+  `;
+}
+
+function filterChecklistSections(done) {
+  return state.checklistSections
+    .map((section) => ({
+      ...section,
+      items: section.items.filter((item) => item.done === done)
+    }))
+    .filter((section) => section.items.length);
+}
+
+function sectionBlock(section) {
+  return `
         <section class="todo-section">
           <h3>${escapeHtml(section.title)}</h3>
           <div class="todo-section-list">
             ${section.items.map(todoCard).join("")}
           </div>
         </section>
-      `
-    )
-    .join("");
+      `;
 }
 
 function todoCard(item) {
